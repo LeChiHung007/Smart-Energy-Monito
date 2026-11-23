@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thống kê chi tiết điện năng - Smart Energy Monitor</title>
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="statistics.css">
+    <!-- Chặn truy cập khi chưa đăng nhập (đồng bộ với cơ chế của toàn hệ thống) -->
+    <script>
+        (function () {
+            var ok = false;
+            try { ok = !!(localStorage.getItem('ems_auth') || sessionStorage.getItem('ems_auth')); } catch (e) {}
+            if (!ok) location.replace('login.html');
+        })();
+    </script>
+</head>
+<body>
+
+    <div class="app-container">
+        <!-- TOP APP HEADER -->
+        <header class="app-header">
+            <div class="brand-section">
+                <div class="brand-icon">
+                    <i class="fas fa-bolt-lightning"></i>
+                </div>
+                <div class="brand-info">
+                    <h1>
+                        Hệ thống giám sát điện năng
+                        <span class="badge-ver">v2.5 IoT</span>
+                    </h1>
+                    <p>
+                        <span class="domain-url-pill" title="Địa chỉ tên miền chính thức của hệ thống">
+                            <i class="fas fa-globe"></i> hethonggiamsatdiennang.vn
+                        </span>
+                        <span>• Phân hệ Báo cáo & Thống kê chi tiết tiêu thụ điện năng</span>
+                    </p>
+                </div>
+            </div>
+
+            <div class="header-status-group">
+                <!-- NÚT QUAY VỀ DASHBOARD -->
+                <a href="index.html" class="btn-back-dashboard" id="btn-back-dashboard" title="Quay về màn hình điều khiển chính Dashboard">
+                    <i class="fas fa-arrow-left"></i>
+                    <span>Quay về Dashboard</span>
+                </a>
+
+                <!-- Đồng hồ thời gian thực -->
+                <div class="clock-display" title="Thời gian thực hệ thống">
+                    <i class="fas fa-clock"></i>
+                    <span id="live-clock">--:--:--</span>
+                </div>
+
+                <!-- Đèn xung công tơ điện tử EVN -->
+                <div class="meter-pulse-box" title="Đèn xung công tơ điện tử: 1600 imp/kWh">
+                    <span class="impulse-led" id="meter-impulse-led"></span>
+                    <span>Công tơ: <strong>CT-EVN-89412</strong></span>
+                </div>
+
+                <!-- NÚT & MENU QUẢN TRỊ VIÊN (HÌNH ĐẠI DIỆN + TÊN + MENU DROPDOWN) -->
+                <div class="admin-menu-wrapper">
+                    <button class="admin-profile-pill" id="admin-menu-trigger" type="button" title="Mở menu quản trị viên">
+                        <img class="admin-avatar-thumb" src="" alt="Avatar">
+                        <span id="nav-profile-name">Quản trị viên</span>
+                        <i class="fas fa-chevron-down admin-caret"></i>
+                    </button>
+
+                    <!-- Dropdown Menu Quản trị viên -->
+                    <div class="admin-dropdown-menu" id="admin-dropdown-menu">
+                        <div class="admin-dropdown-header">
+                            <div class="admin-avatar-large-wrap">
+                                <img class="admin-menu-avatar" src="" alt="Avatar">
+                                <span class="admin-status-indicator" title="Đang trực tuyến"></span>
+                            </div>
+                            <div class="admin-user-details">
+                                <strong class="admin-user-name" id="admin-menu-user-name">Quản trị viên</strong>
+                                <span class="admin-user-role-badge">
+                                    <i class="fas fa-shield-halved"></i>
+                                    <span id="admin-menu-user-role">Quản trị viên hệ thống</span>
+                                </span>
+                                <span class="admin-user-email" id="admin-menu-user-email">admin@hethonggiamsatdiennang.vn</span>
+                            </div>
+                        </div>
+
+                        <div class="admin-dropdown-list">
+                            <a href="profile.html" class="admin-dropdown-item">
+                                <i class="fas fa-id-card"></i>
+                                <span>Hồ sơ cá nhân</span>
+                            </a>
+                            <button type="button" class="admin-dropdown-item" id="btn-menu-change-avatar">
+                                <i class="fas fa-camera"></i>
+                                <span>Đổi ảnh đại diện...</span>
+                            </button>
+                            <button type="button" class="admin-dropdown-item" id="btn-menu-default-avatar" style="font-size: 0.8rem; color: var(--text-muted);">
+                                <i class="fas fa-arrow-rotate-left"></i>
+                                <span>Dùng ảnh mặc định</span>
+                            </button>
+                            <div class="admin-dropdown-divider"></div>
+                            <a href="statistics.html" class="admin-dropdown-item">
+                                <i class="fas fa-chart-pie"></i>
+                                <span>Thống kê chi tiết</span>
+                            </a>
+                            <a href="index.html" class="admin-dropdown-item">
+                                <i class="fas fa-house-laptop"></i>
+                                <span>Bảng điều khiển chính</span>
+                            </a>
+                            <div class="admin-dropdown-divider"></div>
+                            <button type="button" class="admin-dropdown-item item-logout" id="btn-menu-logout">
+                                <i class="fas fa-right-from-bracket"></i>
+                                <span>Đăng xuất</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Input ẩn để upload ảnh đại diện từ máy tính -->
+                <input type="file" id="admin-avatar-file-input" accept="image/*" style="display: none;">
+
+                <!-- Nút chuyển đổi giao diện Sáng / Tối -->
+                <button class="theme-toggle-btn" title="Chuyển sang giao diện sáng">
+                    <i class="fas fa-sun"></i>
+                    <span>Sáng</span>
+                </button>
+
+                <!-- Nút Đăng xuất -->
+                <button class="eco-reward-pill" id="btn-logout" title="Đăng xuất" style="cursor:pointer;font-family:inherit;color:#fca5a5;border-color:rgba(239,68,68,.4);background:rgba(239,68,68,.08);">
+                    <i class="fas fa-right-from-bracket"></i>
+                    <span>Đăng xuất</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- BANNER TIÊU ĐỀ TRANG THỐNG KÊ -->
+        <section class="stat-page-header">
+            <div class="stat-page-info">
+                <h2 class="stat-page-title">
+                    <i class="fas fa-chart-pie" style="color: var(--primary);"></i>
+                    Thống kê chi tiết & Phân tích điện năng
+                </h2>
+                <div class="stat-page-desc">
+                    <span>Dữ liệu đo đạc trực quan từ công tơ thông minh CT-EVN-89412</span>
+                    <span class="meta-tag"><i class="fas fa-house-signal"></i> 4 phòng / 14 thiết bị</span>
+                    <span class="meta-tag"><i class="fas fa-bolt"></i> Tải điện áp: 220V</span>
+                </div>
+            </div>
+
+            <div class="stat-header-badges">
+                <div class="stat-pill pill-realtime" id="stat-pill-realtime" style="color: #34d399; border-color: rgba(52, 211, 153, 0.4); background: rgba(52, 211, 153, 0.08);">
+                    <i class="fas fa-circle-dot status-dot-blink"></i>
+                    <span id="stat-sync-status">Thời gian thực (Đồng bộ 1s)</span>
+                </div>
+                <div class="stat-pill pill-cycle">
+                    <i class="fas fa-calendar-check"></i>
+                    <span>Chu kỳ: Tháng 11/2026</span>
+                </div>
+                <div class="stat-pill pill-tariff">
+                    <i class="fas fa-file-invoice-dollar"></i>
+                    <span>Biểu giá EVN 6 bậc (VAT 8%)</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- 1. THỐNG KÊ TỔNG QUAN (4 THẺ KPI METRICS) -->
+        <section class="metrics-grid">
+            <!-- Thẻ 1: Tổng điện năng tiêu thụ (kWh) -->
+            <div class="metric-card card-primary">
+                <div class="metric-header">
+                    <span class="metric-label">Tổng điện năng tiêu thụ</span>
+                    <i class="fas fa-bolt-lightning metric-icon" style="color: var(--primary);"></i>
+                </div>
+                <div class="metric-value-wrap">
+                    <span class="metric-value" id="stat-total-kwh">0.000</span>
+                    <span class="metric-unit">kWh</span>
+                </div>
+                <div class="metric-footer">
+                    <i class="fas fa-layer-group"></i>
+                    <span id="stat-kwh-footer">Tích lũy thời gian thực (4 phòng)</span>
+                </div>
+            </div>
+
+            <!-- Thẻ 2: Tổng tiền điện -->
+            <div class="metric-card card-warning">
+                <div class="metric-header">
+                    <span class="metric-label">Tổng tiền điện phát sinh</span>
+                    <i class="fas fa-receipt metric-icon" style="color: var(--warning);"></i>
+                </div>
+                <div class="metric-value-wrap">
+                    <span class="metric-value" id="stat-total-bill">0 đ</span>
+                </div>
+                <div class="metric-footer">
+                    <i class="fas fa-calculator"></i>
+                    <span>Biểu giá 6 bậc EVN + VAT 8%</span>
+                </div>
+            </div>
+
+            <!-- Thẻ 3: Công suất tức thời & Tiêu thụ trung bình -->
+            <div class="metric-card card-info">
+                <div class="metric-header">
+                    <span class="metric-label">Công suất phụ tải tức thời</span>
+                    <i class="fas fa-gauge-high metric-icon" style="color: var(--info);"></i>
+                </div>
+                <div class="metric-value-wrap">
+                    <span class="metric-value" id="stat-current-power">0.00</span>
+                    <span class="metric-unit">kW</span>
+                </div>
+                <div class="metric-footer">
+                    <i class="fas fa-chart-line"></i>
+                    <span id="stat-avg-subtext">Đang đo đạc phụ tải trực tiếp...</span>
+                </div>
+            </div>
+
+            <!-- Thẻ 4: Thiết bị tiêu thụ điện nhiều nhất -->
+            <div class="metric-card card-success stat-card-top-device">
+                <div class="metric-header">
+                    <span class="metric-label">Thiết bị tiêu thụ nhiều nhất</span>
+                    <i class="fas fa-fire metric-icon" style="color: var(--danger);"></i>
+                </div>
+                <div class="metric-value-wrap">
+                    <span class="metric-value" id="stat-top-device-name" style="color: #fca5a5;">--</span>
+                </div>
+                <div class="metric-footer">
+                    <span id="stat-top-device-info" style="color: var(--text-secondary); display: flex; align-items: center; gap: 5px;">
+                        Đang đọc dữ liệu...
+                    </span>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. KHỐI THỐNG KÊ ĐA CHU KỲ (THEO PHÚT - NGÀY - THÁNG - NĂM) -->
+        <section class="period-metrics-section">
+            <div class="period-section-title">
+                <i class="fas fa-sliders" style="color: var(--primary);"></i>
+                <span>Thống kê tiêu thụ & Chi phí theo chu kỳ thời gian (Nhấp để xem biểu đồ)</span>
+            </div>
+            <div class="period-metrics-grid">
+                <!-- 1. Theo Phút -->
+                <div class="period-metric-card active" id="period-card-minute" data-period="minute" title="Xem biểu đồ phụ tải theo từng phút">
+                    <div class="period-card-header">
+                        <span class="period-badge"><i class="fas fa-stopwatch"></i> Theo phút</span>
+                        <span class="period-tag live-tag"><i class="fas fa-circle-dot"></i> Live</span>
+                    </div>
+                    <div class="period-values">
+                        <div class="period-kwh"><span id="p-minute-kwh">0.000</span> <small>kWh/phút</small></div>
+                        <div class="period-cost" id="p-minute-cost">0 đ/phút</div>
+                    </div>
+                    <div class="period-desc" id="p-minute-desc">Tải tiêu thụ tức thời theo phút</div>
+                </div>
+
+                <!-- 2. Theo Ngày -->
+                <div class="period-metric-card" id="period-card-day" data-period="day" title="Xem biểu đồ sản lượng các ngày gần nhất">
+                    <div class="period-card-header">
+                        <span class="period-badge"><i class="fas fa-calendar-day"></i> Theo ngày</span>
+                        <span class="period-tag">Hôm nay</span>
+                    </div>
+                    <div class="period-values">
+                        <div class="period-kwh"><span id="p-day-kwh">0.00</span> <small>kWh/ngày</small></div>
+                        <div class="period-cost" id="p-day-cost">0 đ/ngày</div>
+                    </div>
+                    <div class="period-desc" id="p-day-desc">Sản lượng điện tiêu thụ trong ngày</div>
+                </div>
+
+                <!-- 3. Theo Tháng -->
+                <div class="period-metric-card" id="period-card-month" data-period="month" title="Xem biểu đồ 12 tháng trong năm">
+                    <div class="period-card-header">
+                        <span class="period-badge"><i class="fas fa-calendar-alt"></i> Theo tháng</span>
+                        <span class="period-tag">Tháng 11/2026</span>
+                    </div>
+                    <div class="period-values">
+                        <div class="period-kwh"><span id="p-month-kwh">0.00</span> <small>kWh/tháng</small></div>
+                        <div class="period-cost" id="p-month-cost">0 đ/tháng</div>
+                    </div>
+                    <div class="period-desc" id="p-month-desc">Chu kỳ hóa đơn EVN hiện tại</div>
+                </div>
+
+                <!-- 4. Theo Năm -->
+                <div class="period-metric-card" id="period-card-year" data-period="year" title="Xem biểu đồ sản lượng qua các năm">
+                    <div class="period-card-header">
+                        <span class="period-badge"><i class="fas fa-calendar"></i> Theo năm</span>
+                        <span class="period-tag">Năm 2026</span>
+                    </div>
+                    <div class="period-values">
+                        <div class="period-kwh"><span id="p-year-kwh">0.0</span> <small>kWh/năm</small></div>
+                        <div class="period-cost" id="p-year-cost">0 đ/năm</div>
+                    </div>
+                    <div class="period-desc" id="p-year-desc">Lũy kế cả năm (12 tháng)</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 3. KHU VỰC BIỂU ĐỒ (LINE CHART & DOUGHNUT CHART) -->
+        <section class="charts-grid">
+            <!-- Cột trái: Biểu đồ đường (Line Chart) 4 chế độ: Phút, Ngày, Tháng, Năm -->
+            <div class="chart-card">
+                <div class="chart-header">
+                    <div class="chart-title-wrap">
+                        <h3 class="chart-title">
+                            <i class="fas fa-chart-area" style="color: var(--primary);"></i>
+                            <span id="chart-main-title">Biểu đồ điện năng tiêu thụ theo phút</span>
+                        </h3>
+                        <span class="chart-subtitle" id="chart-main-subtitle">Theo dõi phụ tải điện và chi phí tương ứng theo thời gian thực</span>
+                    </div>
+
+                    <!-- 4 Chế độ lọc theo yêu cầu: Theo phút, Theo ngày, Theo tháng, Theo năm -->
+                    <div class="chart-period-tabs">
+                        <button class="chart-tab-btn active" data-period="minute" title="Xem phụ tải điện theo từng phút (Realtime)">
+                            <i class="fas fa-stopwatch"></i> Theo phút
+                        </button>
+                        <button class="chart-tab-btn" data-period="day" title="Xem sản lượng điện theo ngày (7 ngày gần nhất)">
+                            <i class="fas fa-calendar-day"></i> Theo ngày
+                        </button>
+                        <button class="chart-tab-btn" data-period="month" title="Xem sản lượng điện theo tháng (12 tháng)">
+                            <i class="fas fa-calendar-alt"></i> Theo tháng
+                        </button>
+                        <button class="chart-tab-btn" data-period="year" title="Xem sản lượng điện theo năm (4 năm)">
+                            <i class="fas fa-calendar"></i> Theo năm
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Vùng vẽ Canvas Line Chart -->
+                <div class="line-chart-wrapper">
+                    <canvas id="lineChart"></canvas>
+                </div>
+
+                <!-- Thanh tóm tắt nhanh phụ tải bên dưới biểu đồ -->
+                <div class="chart-summary-bar">
+                    <div class="summary-stat-item">
+                        <span class="summary-stat-label">
+                            <i class="fas fa-arrow-trend-up" style="color: #f87171;"></i>
+                            <span id="stat-peak-label">Cao nhất (Peak)</span>
+                        </span>
+                        <span class="summary-stat-value val-peak" id="stat-peak-val">-- kWh</span>
+                        <span class="summary-stat-sub" id="stat-peak-cost">-- đ</span>
+                    </div>
+                    <div class="summary-stat-item">
+                        <span class="summary-stat-label">
+                            <i class="fas fa-arrow-trend-down" style="color: #34d399;"></i>
+                            <span id="stat-low-label">Thấp nhất (Off-peak)</span>
+                        </span>
+                        <span class="summary-stat-value val-low" id="stat-low-val">-- kWh</span>
+                        <span class="summary-stat-sub" id="stat-low-cost">-- đ</span>
+                    </div>
+                    <div class="summary-stat-item">
+                        <span class="summary-stat-label">
+                            <i class="fas fa-calculator" style="color: #38bdf8;"></i>
+                            <span>Trung bình chu kỳ</span>
+                        </span>
+                        <span class="summary-stat-value val-avg" id="stat-chart-avg-val">-- kWh</span>
+                        <span class="summary-stat-sub" id="stat-chart-avg-cost">-- đ</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cột phải: Biểu đồ tròn theo phòng (Doughnut Chart) -->
+            <div class="chart-card">
+                <div class="chart-header">
+                    <div class="chart-title-wrap">
+                        <h3 class="chart-title">
+                            <i class="fas fa-chart-pie" style="color: var(--success);"></i>
+                            Biểu đồ theo phòng
+                        </h3>
+                        <span class="chart-subtitle">Tỷ trọng điện năng tiêu thụ từng khu vực</span>
+                    </div>
+                </div>
+
+                <!-- Vùng vẽ Canvas Doughnut Chart -->
+                <div class="doughnut-chart-wrapper">
+                    <canvas id="roomDoughnutChart"></canvas>
+                </div>
+
+                <!-- Danh sách phân bổ chi tiết từng phòng -->
+                <div class="room-breakdown-list" id="roomBreakdownList">
+                    <!-- Rendered by JS -->
+                </div>
+            </div>
+        </section>
+
+        <!-- 3. BẢNG THỐNG KÊ CHI TIẾT THIẾT BỊ (DEVICE STATISTICS TABLE) -->
+        <section class="table-section-card">
+            <div class="table-toolbar">
+                <div class="chart-title-wrap">
+                    <h3 class="chart-title">
+                        <i class="fas fa-table-list" style="color: var(--primary);"></i>
+                        Bảng thống kê thiết bị
+                    </h3>
+                    <span class="chart-subtitle">
+                        Sắp xếp theo mức tiêu thụ từ cao xuống thấp • Tự động tính tỷ lệ % và công suất
+                    </span>
+                </div>
+
+                <!-- Bộ điều khiển tìm kiếm & lọc phòng -->
+                <div class="table-controls">
+                    <!-- Ô tìm kiếm -->
+                    <div class="search-input-wrap">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="tableDeviceSearch" class="search-input" placeholder="Tìm tên thiết bị...">
+                    </div>
+
+                    <!-- Dropdown lọc phòng -->
+                    <select id="tableRoomSelect" class="filter-select" title="Lọc theo khu vực phòng">
+                        <option value="all">Tất cả các phòng (4 phòng)</option>
+                        <option value="living-room">Phòng khách</option>
+                        <option value="kitchen">Phòng bếp & Ăn</option>
+                        <option value="bedroom-master">Phòng ngủ Master</option>
+                        <option value="bathroom-laundry">Phòng tắm & Giặt đồ</option>
+                    </select>
+
+                    <!-- Nút reset bộ lọc -->
+                    <button class="btn btn-secondary" id="btnResetTableFilter" title="Đặt lại bộ lọc tìm kiếm">
+                        <i class="fas fa-rotate-left"></i> Đặt lại
+                    </button>
+                </div>
+            </div>
+
+            <!-- Bảng dữ liệu thiết bị responsive -->
+            <div class="table-responsive-wrapper">
+                <table class="stat-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 50px; text-align: center;">#</th>
+                            <th>Tên thiết bị</th>
+                            <th>Khu vực (Phòng)</th>
+                            <th>Công suất</th>
+                            <th>Điện năng tiêu thụ</th>
+                            <th>Tỷ lệ tiêu thụ</th>
+                            <th>Trạng thái</th>
+                        </tr>
+                    </thead>
+                    <tbody id="deviceTableBody">
+                        <!-- Rendered by JS -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Dòng tổng kết chân bảng -->
+            <div class="table-summary-footer">
+                <div>
+                    Đang hiển thị: <strong id="tableDeviceCount" style="color: var(--text-primary);">0 thiết bị</strong>
+                </div>
+                <div>
+                    Tổng điện năng nhóm đang lọc: <strong id="tableTotalFilteredKwh" style="color: var(--primary); font-family: monospace;">0.00 kWh</strong>
+                </div>
+            </div>
+        </section>
+
+        <!-- FOOTER & TEAM INFO (ĐỒNG BỘ DASHBOARD) -->
+        <footer class="app-footer">
+            <div>
+                <strong>Hệ thống giám sát điện năng</strong> (hethonggiamsatdiennang.vn) • Học phần: Thiết kế & Lập trình Web Frontend
+            </div>
+            <div class="team-badge">
+                <i class="fas fa-users"></i> Báo cáo Đồ án Nhóm • Chuẩn Rubric 90-100%
+            </div>
+        </footer>
+    </div>
+
+    <!-- Scripts nạp theo đúng thứ tự phụ thuộc -->
+    <script src="data.js"></script>
+    <script src="calculator.js"></script>
+    <script src="statistics.js"></script>
+    <script src="theme.js"></script>
+    <script src="admin-menu.js"></script>
+    <script>
+        // Đồng bộ tên đăng nhập lên nút Hồ sơ
+        (function syncProfileNav() {
+            try {
+                var raw = localStorage.getItem('ems_auth') || sessionStorage.getItem('ems_auth');
+                if (raw) {
+                    var info = JSON.parse(raw);
+                    var el = document.getElementById('nav-profile-name');
+                    if (el && info.name) el.textContent = info.name;
+                }
+            } catch (e) {}
+        })();
+    </script>
+</body>
+</html>
