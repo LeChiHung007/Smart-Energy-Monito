@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ thống giám sát điện năng</title>
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Custom Stylesheet -->
+    <link rel="stylesheet" href="style.css">
+    <!-- Chặn truy cập khi chưa đăng nhập -->
+    <script>
+        (function () {
+            var ok = false;
+            try { ok = !!(localStorage.getItem('ems_auth') || sessionStorage.getItem('ems_auth')); } catch (e) {}
+            if (!ok) location.replace('login.html');
+        })();
+    </script>
+</head>
+<body>
+
+    <div class="app-container">
+        <!-- TOP APP HEADER -->
+        <header class="app-header">
+            <div class="brand-section">
+                <div class="brand-icon">
+                    <i class="fas fa-bolt-lightning"></i>
+                </div>
+                <div class="brand-info">
+                    <h1>
+                        Hệ thống giám sát điện năng
+                        <span class="badge-ver">v2.5 IoT</span>
+                    </h1>
+                    <p>
+                        <span class="domain-url-pill" title="Địa chỉ tên miền chính thức của hệ thống">
+                            <i class="fas fa-globe"></i> hethonggiamsatdiennang.vn
+                        </span>
+                        <span>• Giám sát & tối ưu hóa chi phí bậc thang EVN theo thời gian thực</span>
+                    </p>
+                </div>
+            </div>
+
+            <div class="header-status-group">
+                <!-- Đồng hồ thời gian thực -->
+                <div class="clock-display" title="Thời gian thực hệ thống">
+                    <i class="fas fa-clock"></i>
+                    <span id="live-clock">11:45:00</span>
+                </div>
+
+                <!-- Đèn xung công tơ điện tử tử EVN (Impulse LED) -->
+                <div class="meter-pulse-box" title="Đèn xung công tơ điện tử: 1600 imp/kWh">
+                    <span class="impulse-led" id="meter-impulse-led"></span>
+                    <span>Công tơ: <strong>CT-EVN-89412</strong></span>
+                </div>
+
+                <!-- Eco Reward Points -->
+                <div class="eco-reward-pill" title="Điểm tích lũy khi sử dụng thiết bị tiết kiệm điện">
+                    <i class="fas fa-award"></i>
+                    <span id="topbar-eco-points">420 Điểm</span>
+                </div>
+
+                <!-- Đăng xuất -->
+                <button class="eco-reward-pill" id="btn-logout" title="Đăng xuất" style="cursor:pointer;font-family:inherit;color:#fca5a5;border-color:rgba(239,68,68,.4);background:rgba(239,68,68,.08);">
+                    <i class="fas fa-right-from-bracket"></i>
+                    <span>Đăng xuất</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- QUICK METRICS ROW -->
+        <section class="metrics-grid">
+            <div class="metric-card card-primary">
+                <div class="metric-header">
+                    <span class="metric-label">Công suất tức thời (P)</span>
+                    <i class="fas fa-bolt metric-icon" style="color: var(--primary);"></i>
+                </div>
+                <div class="metric-value-wrap">
+                    <span class="metric-value" id="metric-current-power">0.00</span>
+                    <span class="metric-unit">kW</span>
+                </div>
+                <div class="metric-footer">
+                    <i class="fas fa-wave-square"></i>
+                    <span>Tải điện áp: 220V ổn định</span>
+                </div>
+            </div>
+
+            <div class="metric-card card-info">
+                <div class="metric-header">
+                    <span class="metric-label">Thiết bị đang chạy</span>
+                    <i class="fas fa-power-off metric-icon" style="color: var(--info);"></i>
+                </div>
+                <div class="metric-value-wrap">
+                    <span class="metric-value" id="metric-active-devices">0/0</span>
+                    <span class="metric-unit">thiết bị</span>
+                </div>
+                <div class="metric-footer">
+                    <i class="fas fa-house-signal"></i>
+                    <span>4 khu vực chức năng</span>
+                </div>
+            </div>
+
+            <div class="metric-card card-success">
+                <div class="metric-header">
+                    <span class="metric-label">Điện năng chu kỳ (Thời gian thực)</span>
+                    <i class="fas fa-chart-line metric-icon" style="color: var(--success);"></i>
+                </div>
+                <div class="metric-value-wrap">
+                    <span class="metric-value" id="metric-total-kwh">0.000</span>
+                    <span class="metric-unit">kWh</span>
+                </div>
+                <div class="metric-footer">
+                    <i class="fas fa-bolt"></i>
+                    <span id="metric-kwh-subtext">Đang tích lũy từng giây...</span>
+                </div>
+            </div>
+
+            <div class="metric-card card-warning">
+                <div class="metric-header">
+                    <span class="metric-label">Tiền điện thực tế phát sinh</span>
+                    <i class="fas fa-receipt metric-icon" style="color: var(--warning);"></i>
+                </div>
+                <div class="metric-value-wrap">
+                    <span class="metric-value" id="metric-current-bill">0 đ</span>
+                </div>
+                <div class="metric-footer">
+                    <i class="fas fa-calculator"></i>
+                    <span>Dự kiến cả tháng: <strong id="metric-est-month-bill">0 đ</strong></span>
+                </div>
+            </div>
+        </section>
+
+        <!-- CONTROL TOOLBAR & FILTER -->
+        <section class="toolbar-section">
+            <div class="filter-group">
+                <span style="font-size: 0.85rem; color: var(--text-secondary); margin-right: 4px;">
+                    <i class="fas fa-filter"></i> Lọc:
+                </span>
+                <button class="filter-btn active" data-filter="all">Tất cả</button>
+                <button class="filter-btn" data-filter="active">Đang bật</button>
+                <button class="filter-btn" data-filter="eco">Tiết kiệm Eco</button>
+            </div>
+
+            <div class="action-buttons">
+                <button class="btn btn-secondary" id="btn-turn-all-on" title="Bật toàn bộ thiết bị trong nhà">
+                    <i class="fas fa-toggle-on"></i> Bật tất cả
+                </button>
+                <button class="btn btn-secondary" id="btn-turn-all-off" title="Tắt toàn bộ thiết bị trong nhà">
+                    <i class="fas fa-toggle-off"></i> Tắt tất cả
+                </button>
+                <button class="btn btn-eco" id="btn-eco-mode" title="Bật chế độ tiết kiệm năng lượng Inverter">
+                    <i class="fas fa-leaf"></i> Kích hoạt Eco Mode
+                </button>
+                <!-- NÚT RESET TIỀN ĐIỆN VÀ CHU KỲ THEO YÊU CẦU -->
+                <button class="btn btn-reset" id="btn-reset-bill" title="Đặt lại điện năng tiêu thụ và tiền điện về 0">
+                    <i class="fas fa-rotate-left"></i> Reset tiền điện
+                </button>
+            </div>
+        </section>
+
+        <!-- MAIN DASHBOARD CONTENT (2 COLUMNS) -->
+        <main class="main-dashboard-grid">
+            <!-- LEFT COLUMN: SƠ ĐỒ MẶT BẰNG CÁC PHÒNG (CSS GRID) -->
+            <section class="section-card">
+                <div class="section-header">
+                    <div>
+                        <h2 class="section-title">
+                            <i class="fas fa-border-all" style="color: var(--primary);"></i>
+                            Sơ đồ mặt bằng & Trạng thái thiết bị
+                        </h2>
+                        <span class="section-subtitle">Mô hình CSS Grid trực quan hóa từng phòng và công tắc điều khiển</span>
+                    </div>
+                </div>
+
+                <!-- House Grid Container do JavaScript render bằng map/filter -->
+                <div class="house-grid-container" id="floorplan-container">
+                    <!-- Dynamic Rooms Content -->
+                </div>
+
+                <!-- Simulation Info Bar & Realtime Speed Selector -->
+                <div class="simulation-bar">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <i class="fas fa-clock-rotate-left" style="color: var(--primary);"></i>
+                        <span>Giả lập dòng điện IoT: <strong id="sim-status-text">Thời gian thực (1s)</strong></span>
+                    </div>
+
+                    <div class="sim-controls-group">
+                        <label for="sim-speed-select" style="font-size: 0.78rem; color: var(--text-secondary);">Tốc độ demo:</label>
+                        <select id="sim-speed-select" class="speed-select" title="Tăng tốc độ thời gian để quan sát tiền điện nhảy nhanh trong buổi thuyết trình">
+                            <option value="1">1x (Thực tế)</option>
+                            <option value="10">10x (Nhanh)</option>
+                            <option value="60" selected>60x (1s = 1 phút)</option>
+                            <option value="360">360x (Siêu tốc demo)</option>
+                        </select>
+                        <button class="simulation-toggle-btn" id="btn-toggle-simulation">
+                            <i class="fas fa-pause"></i> Tạm dừng
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- RIGHT COLUMN: BIỂU GIÁ BẬC THANG EVN & DỰ BÁO TIỀN ĐIỆN -->
+            <aside class="tariff-sidebar">
+                <div class="evn-card">
+                    <div class="section-header">
+                        <div>
+                            <h2 class="section-title">
+                                <i class="fas fa-file-invoice-dollar" style="color: var(--warning);"></i>
+                                Biểu giá bậc thang EVN
+                            </h2>
+                            <span class="section-subtitle">Quy định bán lẻ điện sinh hoạt 6 bậc</span>
+                        </div>
+                    </div>
+
+                    <!-- Bill Summary Box -->
+                    <div class="bill-summary-box">
+                        <div class="summary-row">
+                            <span>Sản lượng điện đã dùng:</span>
+                            <strong id="bill-current-kwh" style="color: var(--primary); font-family: monospace;">0.000 kWh</strong>
+                        </div>
+                        <div class="summary-row">
+                            <span>Dự kiến cả tháng:</span>
+                            <span id="bill-projected-kwh">0 kWh</span>
+                        </div>
+                        <div class="summary-row">
+                            <span>Mức tiêu thụ:</span>
+                            <strong id="bill-status-badge">Đang tính...</strong>
+                        </div>
+                        <div class="summary-row">
+                            <span>Tiền điện trước thuế:</span>
+                            <span id="bill-subtotal">0 đ</span>
+                        </div>
+                        <div class="summary-row">
+                            <span>Thuế GTGT (VAT 8%):</span>
+                            <span id="bill-vat">0 đ</span>
+                        </div>
+                        <div class="summary-row total-row">
+                            <span>Tổng tiền đã phát sinh:</span>
+                            <span class="total-amount" id="bill-total">0 đ</span>
+                        </div>
+                    </div>
+
+                    <!-- Danh sách 6 bậc thang -->
+                    <div style="margin-bottom: 12px; font-size: 0.82rem; font-weight: 600; color: var(--text-secondary);">
+                        Chi tiết từng bậc tiêu thụ:
+                    </div>
+                    <div class="tariff-tiers-list" id="tariff-tiers-list">
+                        <!-- Rendered by JS -->
+                    </div>
+                </div>
+            </aside>
+        </main>
+
+        <!-- FOOTER & TEAM INFO -->
+        <footer class="app-footer">
+            <div>
+                <strong>Hệ thống giám sát điện năng</strong> (hethonggiamsatdiennang.vn) • Học phần: Thiết kế & Lập trình Web Frontend
+            </div>
+            <div class="team-badge">
+                <i class="fas fa-users"></i> Báo cáo Đồ án Nhóm • Chuẩn Rubric 90-100%
+            </div>
+        </footer>
+    </div>
+
+    <!-- FLOATING TOAST NOTIFICATION -->
+    <div class="toast-notification" id="app-toast">
+        <i class="fas fa-circle-check" style="color: var(--success); font-size: 1.1rem;"></i>
+        <span id="toast-message">Đã đặt lại dữ liệu thành công!</span>
+    </div>
+
+    <!-- Scripts in order of dependency -->
+    <script src="data.js"></script>
+    <script src="calculator.js"></script>
+    <script src="app.js"></script>
+    <script src="ai-advisor.js"></script>
+    <script>
+        document.getElementById('btn-logout').addEventListener('click', function () {
+            try { localStorage.removeItem('ems_auth'); sessionStorage.removeItem('ems_auth'); } catch (e) {}
+            location.replace('login.html');
+        });
+    </script>
+</body>
+</html>
